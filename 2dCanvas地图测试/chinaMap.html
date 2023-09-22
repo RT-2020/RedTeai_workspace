@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  xmlns="http://www.w3.org/1999/html"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>扒echart源码</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: inherit;
+      }
+
+      html,
+      body {
+        height: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      canvas {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="canvas"></canvas>
+    <script src="./shuju.js"></script>
+    <script>
+      function clone(value) {
+        if (Array.isArray(value)) {
+          return value.map(clone)
+        } else if (value && typeof value === 'object') {
+          var res = {}
+          for (var key in value) {
+            res[key] = clone(value[key])
+          }
+          return res
+        } else {
+          return value
+        }
+      }
+      const dpr = window.devicePixelRatio
+      const aspectRatio = 0.75
+      const ratio = 0.8
+      var shapes = {}
+      let transformInfoRaw = {
+        // 默认tansform
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+      }
+      // 计算transform 经纬度的坐标放大到canvas的坐标
+      function applyTransform() {
+        // 初始化默认值 进行计算
+        shapes = clone(shuju).features.map((item) => item.geometry)
+        transformInfoRaw = {
+          // 默认tansform
+          x: 0,
+          y: 0,
+          scaleX: 1,
+          scaleY: 1,
+        }
+        var longitude = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER] // 经度最小值、最大值
+        var latitude = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER] // 纬度最小值、最大值
+        for (let i = 0; i < shapes.length; i++) {
+          if (shapes[i].type == 'MultiPolygon') {
+            for (var j = 0; j < shapes[i].coordinates.length; j++) {
+              // 坐标转化
+              var coor = shapes[i].coordinates[j][0]
+              for (var k = 0; k < coor.length; k++) {
+                var coorK = coor[k]
+                longitude[0] = Math.min(coorK[0], longitude[0])
+                latitude[0] = Math.min(coorK[1], latitude[0])
+                longitude[1] = Math.max(coorK[0], longitude[1])
+                latitude[1] = Math.max(coorK[1], latitude[1])
+              }
+            }
+          } else {
+            var coor = shapes[i].coordinates[0]
+            for (var k = 0; k < coor.length; k++) {
+              var coorK = coor[k]
+              longitude[0] = Math.min(coorK[0], longitude[0])
+              latitude[0] = Math.min(coorK[1], latitude[0])
+              longitude[1] = Math.max(coorK[0], longitude[1])
+              latitude[1] = Math.max(coorK[1], latitude[1])
+            }
+          }
+        }
+        // 经纬度的rect
+        var rect = {
+          x: longitude[0],
+          y: latitude[0],
+          width: longitude[1] - longitude[0],
+          height: latitude[1] - latitude[0],
+        }
+        // y坐标revert
+        rect.y = -rect.y - rect.height
+        // canvas的rect
+        var rectWin = {
+          x: 0,
+          y: 0,
+          width: NaN,
+          height: NaN,
+        }
+        var _ratioRect = (rect.width / rect.height) * aspectRatio
+        var _rationWindow = window.innerWidth / window.innerHeight
+        if (_ratioRect > _rationWindow) {
+          rectWin.width = window.innerWidth * ratio
+        } else {
+          rectWin.height = window.innerHeight * ratio
+        }
+        if (isNaN(rectWin.width)) {
+          rectWin.width = rectWin.height * _ratioRect
+        }
+        if (isNaN(rectWin.height)) {
+          rectWin.height = rectWin.width / _ratioRect
+        }
+        rectWin.x = (window.innerWidth - rectWin.width) / 2
+        rectWin.y = (window.innerHeight - rectWin.height) / 2
+        // 根据rectWin和rect 计算transform (如何将rect 转换成rectWin)
+        var scale = [rectWin.width / rect.width, rectWin.height / rect.height]
+        // 先将rect 平移到原点
+        transformInfoRaw.x -= rect.x
+        transformInfoRaw.y -= rect.y
+        // rect 进行缩放
+        transformInfoRaw.x *= scale[0]
+        transformInfoRaw.y *= scale[1]
+        transformInfoRaw.scaleX *= scale[0]
+        transformInfoRaw.scaleY *= scale[1]
+        // 先将rect 平移到rectWind的位置
+        transformInfoRaw.x += rectWin.x
+        transformInfoRaw.y += rectWin.y
+        // y坐标revert why
+        transformInfoRaw.scaleY = -transformInfoRaw.scaleY
+        // 根据transform 计算新的坐标
+        for (let i = 0; i < shapes.length; i++) {
+          if (shapes[i].type == 'MultiPolygon') {
+            for (var j = 0; j < shapes[i].coordinates.length; j++) {
+              // 坐标转化
+              var coor = shapes[i].coordinates[j][0]
+              for (var k = 0; k < coor.length; k++) {
+                coor[k][0] =
+                  (coor[k][0] * transformInfoRaw.scaleX + transformInfoRaw.x) *
+                  dpr
+                coor[k][1] =
+                  (coor[k][1] * transformInfoRaw.scaleY + transformInfoRaw.y) *
+                  dpr
+              }
+            }
+          } else {
+            var coor = shapes[i].coordinates[0]
+            for (var k = 0; k < coor.length; k++) {
+              coor[k][0] =
+                (coor[k][0] * transformInfoRaw.scaleX + transformInfoRaw.x) *
+                dpr
+              coor[k][1] =
+                (coor[k][1] * transformInfoRaw.scaleY + transformInfoRaw.y) *
+                dpr
+            }
+          }
+        }
+      }
+      var canvas = document.getElementById('canvas')
+      const ctx = canvas.getContext('2d')
+      var w = window.innerWidth
+      var h = window.innerHeight
+      canvas.style.width = w + 'px'
+      canvas.style.height = h + 'px'
+      canvas.width = w * dpr
+      canvas.height = h * dpr
+      let style = {
+        fill: '#eee',
+        lineWidth: 1,
+        stroke: '#444',
+      }
+      style1 = {
+        fill: 'rgba(238,238,238,1)',
+        stroke: 'rgba(68,68,68,1)',
+        lineWidth: 1,
+        strokeNoScale: true,
+      }
+      style2 = {
+        fill: 'rgba(255,215,0,0.8)',
+        stroke: 'rgba(74,74,74,1)',
+        lineWidth: 1,
+        strokeNoScale: true,
+      }
+      function drawShape(shape, style) {
+        if (shape.type == 'MultiPolygon') {
+          for (var coor of shape.coordinates) {
+            drawShape(coor, style)
+          }
+          return
+        }
+        var path = shape[0]
+        if (shape.type == 'Polygon') {
+          path = shape.coordinates[0]
+        }
+        ctx.beginPath()
+        ctx.save()
+        ctx.moveTo(path[0][0], path[0][1])
+        for (var i = 1; i < path.length; i++) {
+          ctx.lineTo(path[i][0], path[i][1])
+        }
+        ctx.fillStyle = style.fill
+        ctx.strokeStyle = style.stroke
+        ctx.lineWidth = style.lineWidth
+        ctx.fill()
+        ctx.stroke()
+      }
+
+      function draw(hoverTarget, hoverStyle, cb) {
+        ctx.clearRect(0, 0, dpr * w, dpr * h)
+        for (var shape of shapes) {
+          if (shape == hoverTarget) {
+            drawShape(shape, hoverStyle)
+          } else {
+            drawShape(shape, style)
+          }
+        }
+        cb && cb()
+      }
+
+      applyTransform()
+      draw()
+      window.onresize = () => {
+        applyTransform()
+        draw()
+      }
+      prevTarget = null
+
+      document.body.addEventListener('mousemove', (e) => {
+        var { clientX, clientY } = e
+        var hoverTarget = null
+        for (var shape of shapes) {
+          if (shape.type == 'MultiPolygon') {
+            for (var coor of shape.coordinates) {
+              var i = 0
+              var path = coor[0]
+              var w = 0
+              while (i < path.length - 1) {
+                w += windingLine(
+                  path[i][0] / dpr,
+                  path[i][1] / dpr,
+                  path[i + 1][0] / dpr,
+                  path[i + 1][1] / dpr,
+                  clientX,
+                  clientY
+                )
+                i++
+              }
+              w += windingLine(
+                path[i][0] / dpr,
+                path[i][1] / dpr,
+                path[0][0] / dpr,
+                path[0][1] / dpr,
+                clientX,
+                clientY
+              )
+              if (w != 0) {
+                hoverTarget = shape
+                break
+              }
+            }
+          } else {
+            var i = 0
+            var path = shape.coordinates[0]
+            var w = 0
+            while (i < path.length - 1) {
+              w += windingLine(
+                path[i][0] / dpr,
+                path[i][1] / dpr,
+                path[i + 1][0] / dpr,
+                path[i + 1][1] / dpr,
+                clientX,
+                clientY
+              )
+              i++
+            }
+            w += windingLine(
+              path[i][0] / dpr,
+              path[i][1] / dpr,
+              path[0][0] / dpr,
+              path[0][1] / dpr,
+              clientX,
+              clientY
+            )
+            if (w != 0) {
+              hoverTarget = shape
+              break
+            }
+          }
+        }
+
+        if (hoverTarget && hoverTarget != prevTarget) {
+          requestAnimationFrame(() => {
+            draw(hoverTarget, style1, () => {
+              requestAnimationFrame(() => {
+                draw(hoverTarget, style2)
+              })
+            })
+          })
+        } else if (!hoverTarget && prevTarget) {
+          draw()
+        }
+        prevTarget = hoverTarget
+      })
+      function windingLine(x0, y0, x1, y1, x, y) {
+        // 检查点 (x, y) 是否在线段的上方或下方，如果是则返回 0，表示不在左侧或右侧
+        if ((y > y0 && y > y1) || (y < y0 && y < y1)) {
+          return 0
+        }
+
+        // 如果线段是水平的，则返回 0，表示不在左侧或右侧
+        if (y1 === y0) {
+          return 0
+        }
+
+        // 计算点 (x, y) 在线段上的位置比例
+        var t = (y - y0) / (y1 - y0)
+
+        // 确定线段的走向（从上到下还是从下到上），以确定计算方向
+        var dir = y1 < y0 ? 1 : -1
+
+        // 如果点 (x, y) 在线段的端点上，则将方向调整为一半，用于处理特殊情况
+        if (t === 1 || t === 0) {
+          dir = y1 < y0 ? 0.5 : -0.5
+        }
+
+        // 计算点 (x, y) 在线段上对应的 x 坐标
+        var x_ = t * (x1 - x0) + x0
+
+        // 如果计算得到的 x 坐标与给定的 x 坐标相等，则返回无穷大（表示点在线段上）
+        if (x_ === x) {
+          return Infinity
+        }
+
+        // 根据计算得到的 x 坐标与给定的 x 坐标的比较，返回相应的方向
+        // 如果计算得到的 x 坐标大于给定的 x 坐标，则返回之前确定的方向
+        // 如果小于则返回 0，表示点在左侧
+        return x_ > x ? dir : 0
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Document</title>
+    <script>
+      // interface Task {
+      //   id: string;
+      //   deps: string[];
+      //   runTask: Function;
+      // }
+
+      const input = [
+        {
+          id: 'task1',
+          deps: [],
+          runTask: () => 3,
+        },
+        {
+          id: 'task2',
+          deps: ['task1', 'task3'],
+          runTask: (res1, res3) => 1 + res1 + res3,
+        },
+        {
+          id: 'task3',
+          deps: ['task1'],
+          runTask: (res1) => 5 + res1,
+        },
+        {
+          id: 'task4',
+          deps: ['task1', 'task2'],
+          runTask: (res1, res2) => 3 + res1 + res2,
+        },
+      ]
+
+      function runAllTask(tasks, callback) {
+        const taskMap = new Map()
+        const taskQueue = tasks.slice()
+
+        // 异步递归运行一个任务及其依赖项。
+        // 参数：
+        // - task：要执行的任务。
+        // 返回：
+        // 执行任务的结果。
+        async function runTaskRecursive(task) {
+          if (taskMap.has(task.id)) {
+            return taskMap.get(task.id)
+          }
+
+          const depResults = await Promise.all(
+            task.deps.map((depId) =>
+              runTaskRecursive(taskQueue.find((t) => t.id === depId))
+            )
+          )
+
+          const taskResult = await task.runTask(...depResults)
+          taskMap.set(task.id, taskResult)
+
+          return taskResult
+        }
+
+        Promise.all(tasks.map((task) => runTaskRecursive(task)))
+          .then(() => {
+            const result = {}
+            tasks.forEach((task) => {
+              result[task.id] = taskMap.get(task.id)
+            })
+            callback(null, result)
+          })
+          .catch((err) => {
+            callback(err)
+          })
+      }
+
+      runAllTask(input, (err, res) => {
+        if (err) {
+          console.error('Error:', err)
+        } else {
+          console.log(res) // { task1: 3, task2: 12, task3: 8, task4: 18 }
+        }
+      })
+    </script>
+  </head>
+  <body></body>
+</html>

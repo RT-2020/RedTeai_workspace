@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Document</title>
+    <script>
+      var lengthOfLongestSubstring = function (s) {
+        let hasMap = new Set()
+        let maxLength = 0
+        for (let index = 0; index < s.length; index++) {
+          const item = s[index]
+          if (hasMap.has(item)) hasMap.clear()
+          hasMap.add(item)
+          if (hasMap.size > maxLength) maxLength = hasMap.size
+        }
+        return maxLength
+      }
+      lengthOfLongestSubstring('dvdf')
+    </script>
+  </head>
+  <body></body>
+</html>

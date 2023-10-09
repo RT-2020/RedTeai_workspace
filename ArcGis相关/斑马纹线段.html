@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ArcGIS JavaScript API - Zebra Stripe Line</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.23/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.23/"></script>
+    <style>
+      #viewDiv {
+        height: 400px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <script>
+      require([
+        'esri/Map',
+        'esri/views/MapView',
+        'esri/geometry/Polyline',
+        'esri/symbols/SimpleLineSymbol',
+        'esri/Graphic',
+        'esri/Color',
+      ], function (Map, MapView, Polyline, SimpleLineSymbol, Graphic, Color) {
+        // 创建地图对象
+        var map = new Map({
+          basemap: 'topo-vector',
+        })
+
+        // 创建地图视图
+        var view = new MapView({
+          container: 'viewDiv',
+          map: map,
+          center: [-90, 38],
+          zoom: 4,
+        })
+
+        // 创建线段的坐标点数组
+        var lineCoords = [
+          [-80, 40],
+          [-70, 35],
+          [-60, 40],
+          [-50, 35],
+          [-40, 40],
+        ]
+
+        // 创建Polyline对象
+        var polyline = new Polyline({
+          paths: [lineCoords],
+        })
+
+        // 创建线段的样式
+        var lineSymbol = new SimpleLineSymbol({
+          color: new Color([0, 0, 0]), // 黑色线段
+          width: 2, // 线的宽度
+          style: 'dash', // 斑马纹线段样式
+        })
+
+        // 创建Graphic对象
+        var graphic = new Graphic({
+          geometry: polyline,
+          symbol: lineSymbol,
+        })
+
+        // 将Graphic对象添加到地图上
+        view.graphics.add(graphic)
+      })
+    </script>
+  </body>
+</html>

@@ -9,7 +9,7 @@
       name="viewport"
       content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>测试纯色地图</title>
+    <title>扒echart源码</title>
 
     <style>
       * {
@@ -30,48 +30,135 @@
       }
     </style>
   </head>
+
   <body>
     <canvas id="canvas"></canvas>
     <script src="./shuju.js"></script>
     <script>
-      var geoJson = shuju // 你的json文件;
-
-      console.log('[ shuju ] >', shuju)
-      // const dpr = window.devicePixelRatio
-      const dpr = 5
-      var transformInfoRaw = {
-        transform: [
-          10.871882057474686, 0, 0, -14.495842743299582, -237.926562611078,
-          867.3447242410535,
-        ],
-        parent: {
-          originX: 896,
-          originY: 454.5,
+      function clone(value) {
+        if (Array.isArray(value)) {
+          return value.map(clone)
+        } else if (value && typeof value === 'object') {
+          var res = {}
+          for (var key in value) {
+            res[key] = clone(value[key])
+          }
+          return res
+        } else {
+          return value
+        }
+      }
+      const dpr = window.devicePixelRatio
+      const aspectRatio = 0.75
+      const ratio = 0.8
+      var shapes = {}
+      let transformInfoRaw = {
+        // 默认tansform
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+      }
+      // 计算transform 经纬度的坐标放大到canvas的坐标
+      function applyTransform() {
+        // 初始化默认值 进行计算
+        shapes = clone(shuju).features.map((item) => item.geometry)
+        transformInfoRaw = {
+          // 默认tansform
           x: 0,
           y: 0,
-          scaleY: 1,
           scaleX: 1,
-        },
-        skewX: 0,
-        skewY: 0,
-        rotation: 0,
-        x: -237.926562611078,
-        y: 867.3447242410535,
-        scaleX: 10.871882057474686,
-        scaleY: -14.495842743299582,
-        originX: 0,
-        originY: 0,
-        invTransform: [
-          0.09198039444444446, 0, 0, -0.06898529583333335, 21.88457907777777,
-          59.834032391250005,
-        ],
-      }
-      var shapes = geoJson.features.map((item) => item.geometry)
-      for (let i = 0; i < shapes.length; i++) {
-        if (shapes[i].type == 'MultiPolygon') {
-          for (var j = 0; j < shapes[i].coordinates.length; j++) {
-            // 坐标转化
-            var coor = shapes[i].coordinates[j][0]
+          scaleY: 1,
+        }
+        var longitude = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER] // 经度最小值、最大值
+        var latitude = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER] // 纬度最小值、最大值
+        for (let i = 0; i < shapes.length; i++) {
+          if (shapes[i].type == 'MultiPolygon') {
+            for (var j = 0; j < shapes[i].coordinates.length; j++) {
+              // 坐标转化
+              var coor = shapes[i].coordinates[j][0]
+              for (var k = 0; k < coor.length; k++) {
+                var coorK = coor[k]
+                longitude[0] = Math.min(coorK[0], longitude[0])
+                latitude[0] = Math.min(coorK[1], latitude[0])
+                longitude[1] = Math.max(coorK[0], longitude[1])
+                latitude[1] = Math.max(coorK[1], latitude[1])
+              }
+            }
+          } else {
+            var coor = shapes[i].coordinates[0]
+            for (var k = 0; k < coor.length; k++) {
+              var coorK = coor[k]
+              longitude[0] = Math.min(coorK[0], longitude[0])
+              latitude[0] = Math.min(coorK[1], latitude[0])
+              longitude[1] = Math.max(coorK[0], longitude[1])
+              latitude[1] = Math.max(coorK[1], latitude[1])
+            }
+          }
+        }
+        // 经纬度的rect
+        var rect = {
+          x: longitude[0],
+          y: latitude[0],
+          width: longitude[1] - longitude[0],
+          height: latitude[1] - latitude[0],
+        }
+        // y坐标revert
+        rect.y = -rect.y - rect.height
+        // canvas的rect
+        var rectWin = {
+          x: 0,
+          y: 0,
+          width: NaN,
+          height: NaN,
+        }
+        var _ratioRect = (rect.width / rect.height) * aspectRatio
+        var _rationWindow = window.innerWidth / window.innerHeight
+        if (_ratioRect > _rationWindow) {
+          rectWin.width = window.innerWidth * ratio
+        } else {
+          rectWin.height = window.innerHeight * ratio
+        }
+        if (isNaN(rectWin.width)) {
+          rectWin.width = rectWin.height * _ratioRect
+        }
+        if (isNaN(rectWin.height)) {
+          rectWin.height = rectWin.width / _ratioRect
+        }
+        rectWin.x = (window.innerWidth - rectWin.width) / 2
+        rectWin.y = (window.innerHeight - rectWin.height) / 2
+        // 根据rectWin和rect 计算transform (如何将rect 转换成rectWin)
+        var scale = [rectWin.width / rect.width, rectWin.height / rect.height]
+        // 先将rect 平移到原点
+        transformInfoRaw.x -= rect.x
+        transformInfoRaw.y -= rect.y
+        // rect 进行缩放
+        transformInfoRaw.x *= scale[0]
+        transformInfoRaw.y *= scale[1]
+        transformInfoRaw.scaleX *= scale[0]
+        transformInfoRaw.scaleY *= scale[1]
+        // 先将rect 平移到rectWind的位置
+        transformInfoRaw.x += rectWin.x
+        transformInfoRaw.y += rectWin.y
+        // y坐标revert why
+        transformInfoRaw.scaleY = -transformInfoRaw.scaleY
+        // 根据transform 计算新的坐标
+        for (let i = 0; i < shapes.length; i++) {
+          if (shapes[i].type == 'MultiPolygon') {
+            for (var j = 0; j < shapes[i].coordinates.length; j++) {
+              // 坐标转化
+              var coor = shapes[i].coordinates[j][0]
+              for (var k = 0; k < coor.length; k++) {
+                coor[k][0] =
+                  (coor[k][0] * transformInfoRaw.scaleX + transformInfoRaw.x) *
+                  dpr
+                coor[k][1] =
+                  (coor[k][1] * transformInfoRaw.scaleY + transformInfoRaw.y) *
+                  dpr
+              }
+            }
+          } else {
+            var coor = shapes[i].coordinates[0]
             for (var k = 0; k < coor.length; k++) {
               coor[k][0] =
                 (coor[k][0] * transformInfoRaw.scaleX + transformInfoRaw.x) *
@@ -80,14 +167,6 @@
                 (coor[k][1] * transformInfoRaw.scaleY + transformInfoRaw.y) *
                 dpr
             }
-          }
-        } else {
-          var coor = shapes[i].coordinates[0]
-          for (var k = 0; k < coor.length; k++) {
-            coor[k][0] =
-              (coor[k][0] * transformInfoRaw.scaleX + transformInfoRaw.x) * dpr
-            coor[k][1] =
-              (coor[k][1] * transformInfoRaw.scaleY + transformInfoRaw.y) * dpr
           }
         }
       }
@@ -139,6 +218,7 @@
         ctx.fill()
         ctx.stroke()
       }
+
       function draw(hoverTarget, hoverStyle, cb) {
         ctx.clearRect(0, 0, dpr * w, dpr * h)
         for (var shape of shapes) {
@@ -150,8 +230,15 @@
         }
         cb && cb()
       }
+
+      applyTransform()
       draw()
+      window.onresize = () => {
+        applyTransform()
+        draw()
+      }
       prevTarget = null
+
       document.body.addEventListener('mousemove', (e) => {
         var { clientX, clientY } = e
         var hoverTarget = null

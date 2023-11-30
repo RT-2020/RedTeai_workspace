@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Load MapImageLayer</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.24/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.24/"></script>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <script>
+      require([
+        'esri/Map',
+        'esri/views/MapView',
+        'esri/layers/MapImageLayer',
+      ], function (Map, MapView, MapImageLayer) {
+        // 创建地图对象
+        var map = new Map()
+
+        // 定义基本的 URL
+        var baseUrl =
+          'http://59.215.206.139:9800/guizhou_wgs84-proxy/Gis/rest/services/guizhou_wgs84/MapServer/export?'
+
+        // 定义要替换的参数值
+        var layers = 99 // 你的图层编号
+        var format = 'image/png'
+        var level = 8
+        var x = 11856634.72749634
+        var y = 3115275.9486805005
+        var size = '1920,923' // 图像尺寸
+        var where = '' // 你的筛选条件
+        var ua_token =
+          'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWNodW4iLCJjcmVhdGVkIjoxNjgxNDQxNzkyNTc1LCJleHAiOjE3NDU5NDI0MDB9.Alfpn22FkTdyyRJlF5XjhwYK42BAFFCqNlsFqqQWf0ovuc7gY9cXHzOa8ZigTBfLSP7djYSwwm-_BFVVCJGIow' // 你的用户令牌
+
+        // http://59.215.182.102:9800/guizhou_blue_4490_527-proxy/Gis/rest/services/guizhou_blue_4490_527/MapServer/export?layers=8&format=image%2Fpng&level=9&x=106.99368236381702&y=26.62661157399649&size=1920%2C923&where=&ua_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWNodW4iLCJjcmVhdGVkIjoxNjc5NDc4NDcwNzk3LCJleHAiOjE3NDMzNTA0MDB9.-b9cNsST9x-eU4WFPl0TuCye5m5L4dGzYguQYUNbpsIdTOtFrE_yZCE2lvYY2Fk8Xcqgt5A5Hhr8HFQW2spQkQ
+
+        // http://59.215.182.102:9800/guizhou_blue_4490_527-proxy/Gis/rest/services/guizhou_blue_4490_527/MapServer/export?layers=15&format=image%2Fpng&level=10&x=107.17083726244448&y=26.746774780429845&size=1920%2C923&where=&ua_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWNodW4iLCJjcmVhdGVkIjoxNjc5NDc4NDcwNzk3LCJleHAiOjE3NDMzNTA0MDB9.-b9cNsST9x-eU4WFPl0TuCye5m5L4dGzYguQYUNbpsIdTOtFrE_yZCE2lvYY2Fk8Xcqgt5A5Hhr8HFQW2spQkQ
+
+        // http://59.215.206.139:9800/guizhou_wgs84-proxy/Gis/rest/services/guizhou_wgs84/MapServer/export?layers=99&format=image%2Fpng&level=8&x=11856634.72749634&y=3115275.9486805005&size=1920%2C923&where=&ua_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWNodW4iLCJjcmVhdGVkIjoxNjgxNDQxNzkyNTc1LCJleHAiOjE3NDU5NDI0MDB9.Alfpn22FkTdyyRJlF5XjhwYK42BAFFCqNlsFqqQWf0ovuc7gY9cXHzOa8ZigTBfLSP7djYSwwm-_BFVVCJGIow
+
+        // 使用字符串模板来拼接 URL
+        var finalUrl = `${baseUrl}layers=${layers}&format=${format}&level=${level}&x=${x}&y=${y}&size=${size}&where=${where}&ua_token=${ua_token}`
+
+        // 创建 MapImageLayer 对象
+        var mapImageLayer = new MapImageLayer({
+          url: finalUrl,
+        })
+
+        // 添加 MapImageLayer 到地图
+        map.add(mapImageLayer)
+
+        // 创建一个视图
+        var view = new MapView({
+          container: 'viewDiv', // 在HTML中定义的容器元素
+          map: map,
+          center: [-95, 40], // 设置中心点经纬度
+          zoom: 4, // 设置缩放级别
+        })
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Cesium Map Example</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.76/Build/Cesium/Cesium.js"></script>
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.76/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      html {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+
+      #cesiumContainer {
+        width: 100%;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer"></div>
+
+    <script>
+      var viewer = new Cesium.Viewer('cesiumContainer')
+
+      var viewer = new Cesium.Viewer('cesiumContainer', {
+        imageryProvider: new Cesium.UrlTemplateImageryProvider({
+          url: 'http://10.52.1.183:8080/cesiumFile/qsjDOM/{z}/{x}/{y}.png', // 请替换瓦片文件路径后加/{z}/{x}/{y}.png
+          fileExtension: 'png',
+        }),
+      })
+    </script>
+  </body>
+</html>

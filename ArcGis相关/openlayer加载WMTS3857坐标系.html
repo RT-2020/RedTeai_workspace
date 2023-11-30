@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css"
+      type="text/css"
+    />
+    <style>
+      html,
+      body,
+      .map {
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/build/ol.js"></script>
+    <title>WMTS加载</title>
+  </head>
+
+  <body>
+    <div
+      id="map"
+      class="map"
+    ></div>
+    <script type="text/javascript">
+      var projection = ol.proj.get('EPSG:3857') // 坐标系
+      var projectionExtent = projection.getExtent() // 坐标系四至
+      var tileWidth = 256 // 瓦片宽度，一般都是256
+      var projectionWidth = ol.extent.getWidth(projectionExtent) / tileWidth // 坐标系的宽度
+      var resolutions = new Array(18) // 分辨率组
+      var matrixIds = new Array(18) // 缩放级别组
+      var maxZoom = 21
+      for (var z = 1; z < maxZoom; ++z) {
+        //分辨率和matrixIds数组
+        resolutions[z] = projectionWidth / Math.pow(2, z)
+        matrixIds[z] = z - 1
+      }
+
+      console.log('[ resolutions ] >', resolutions)
+      var map = new ol.Map({
+        target: 'map',
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.WMTS({
+              url: 'http://59.215.206.139:9800/guizhou_wgs84-proxy/Gis/rest/services/guizhou_wgs84/MapServer/WMTS?ua_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWNodW4iLCJjcmVhdGVkIjoxNjgxNDQxNzkyNTc1LCJleHAiOjE3NDU5NDI0MDB9.Alfpn22FkTdyyRJlF5XjhwYK42BAFFCqNlsFqqQWf0ovuc7gY9cXHzOa8ZigTBfLSP7djYSwwm-_BFVVCJGIow&',
+              layer: '智慧港口_贵州蓝底_ID3857',
+              style: 'default',
+              format: 'image/png',
+              matrixSet: 'default028mm',
+              tileGrid: new ol.tilegrid.WMTS({
+                origin: [-20037777, 30241177], // 从服务说明中获取
+                resolutions: resolutions,
+                matrixIds: matrixIds,
+              }),
+              wrapX: true,
+            }),
+          }),
+        ],
+        view: new ol.View({
+          projection: projection,
+          center: ol.proj.transform([106.42, 26.35], 'EPSG:4326', 'EPSG:3857'), // 中心点从432转为3857
+          zoom: 10,
+        }),
+      })
+    </script>
+  </body>
+</html>

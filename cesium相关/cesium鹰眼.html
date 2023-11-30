@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cesium Overview Map</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.76/Build/Cesium/Cesium.js"></script>
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.76/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #mainMap {
+        width: 100%;
+        height: 100%;
+      }
+
+      #overviewMap {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 200px;
+        height: 150px;
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="mainMap"></div>
+    <div id="overviewMap"></div>
+
+    <script>
+      // 创建主地图
+      var mainViewer = new Cesium.Viewer('mainMap', {
+        sceneMode: Cesium.SceneMode.SCENE3D,
+        timeline: false, // 禁用时间线控件
+        animation: false, // 禁用动画控件
+        homeButton: false, // 禁用主页控件
+        geocoder: false, // 禁用地名搜索定位控件
+        navigationHelpButton: false, // 禁用帮助控件
+        sceneModePicker: false, // 禁用场景模式切换控件
+        baseLayerPicker: false, // 禁用底图切换控件
+        fullscreenButton: false,
+        selectionIndicator: false,
+      })
+
+      // 创建鹰眼地图
+      var overviewViewer = new Cesium.Viewer('overviewMap', {
+        sceneMode: Cesium.SceneMode.SCENE3D,
+        timeline: false, // 禁用时间线控件
+        animation: false, // 禁用动画控件
+        homeButton: false, // 禁用主页控件
+        geocoder: false, // 禁用地名搜索定位控件
+        navigationHelpButton: false, // 禁用帮助控件
+        sceneModePicker: false, // 禁用场景模式切换控件
+        baseLayerPicker: false, // 禁用底图切换控件
+        fullscreenButton: false,
+        selectionIndicator: false,
+      })
+
+      // 当主地图的摄像机移动时，更新鹰眼地图的视图
+      // overviewViewer.cesiumWidget.creditContainer.style.display = 'none'
+      overviewViewer.scene.backgroundColor = Cesium.Color.TRANSPARENT
+      overviewViewer.camera.percentageChanged = 0.01
+      overviewViewer.imageryLayers.removeAll()
+
+      _bindEvent()
+
+      // 绑定事件
+      function _bindEvent() {
+        // 监听主图相机变化
+        mainViewer.camera.changed.addEventListener(this._syncMap, this)
+      }
+      // 同步主图与鹰眼地图
+      function _syncMap() {
+        overviewViewer.camera.flyTo({
+          destination: mainViewer.camera.position,
+          orientation: {
+            heading: mainViewer.camera.heading,
+            pitch: mainViewer.camera.pitch,
+            roll: mainViewer.camera.roll,
+          },
+          duration: 0.0,
+        })
+      }
+    </script>
+  </body>
+</html>

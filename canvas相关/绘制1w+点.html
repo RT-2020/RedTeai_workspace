@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Canvas Circles</title>
+    <style>
+      canvas {
+        border: 1px solid #000;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas
+      id="myCanvas"
+      width="800"
+      height="600"
+    ></canvas>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const canvas = document.getElementById('myCanvas')
+        const ctx = canvas.getContext('2d')
+        const circles = []
+        const circleRadius = 5
+        const blockSize = 100 // 每个块内的圆的数量
+        const highlightColor = '#FF0000'
+
+        // 生成1W+个圆的随机坐标
+        for (let i = 0; i < 10000; i++) {
+          const x =
+            Math.random() * (canvas.width - 2 * circleRadius) + circleRadius
+          const y =
+            Math.random() * (canvas.height - 2 * circleRadius) + circleRadius
+          circles.push({ x, y, highlighted: false })
+        }
+
+        // 绘制所有圆
+        function drawCircles(startIndex, endIndex) {
+          for (let i = startIndex; i < endIndex; i++) {
+            const circle = circles[i]
+            ctx.beginPath()
+            ctx.arc(circle.x, circle.y, circleRadius, 0, 2 * Math.PI)
+            ctx.fillStyle = circle.highlighted ? highlightColor : '#000'
+            ctx.fill()
+          }
+        }
+
+        // 划分块并绘制
+        function drawBlocks() {
+          const totalBlocks = Math.ceil(circles.length / blockSize)
+
+          for (let blockIndex = 0; blockIndex < totalBlocks; blockIndex++) {
+            const startIndex = blockIndex * blockSize
+            const endIndex = Math.min(
+              (blockIndex + 1) * blockSize,
+              circles.length
+            )
+            drawCircles(startIndex, endIndex)
+          }
+        }
+
+        // 初始化绘制
+        drawBlocks()
+
+        // 点击事件处理
+        canvas.addEventListener('click', function (e) {
+          const rect = canvas.getBoundingClientRect()
+          const mouseX = e.clientX - rect.left
+          const mouseY = e.clientY - rect.top
+
+          for (const circle of circles) {
+            const distance = Math.sqrt(
+              (mouseX - circle.x) ** 2 + (mouseY - circle.y) ** 2
+            )
+            if (distance <= circleRadius) {
+              circle.highlighted = !circle.highlighted
+              drawBlocks()
+              break // 如果只允许点击一个圆高亮，则可以移除这行
+            }
+          }
+        })
+      })
+    </script>
+  </body>
+</html>

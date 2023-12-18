@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>可拖动的进度条</title>
+    <style>
+      #progressBar {
+        width: 300px;
+        height: 20px;
+        background-color: #eee;
+        margin-top: 50px;
+        position: relative;
+      }
+
+      #progress {
+        height: 100%;
+        width: 0;
+        background-color: #4caf50;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="progressBar">
+      <div id="progress"></div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const progressBar = document.getElementById('progressBar')
+        const progress = document.getElementById('progress')
+
+        let isDragging = false
+
+        progressBar.addEventListener('mousedown', function (e) {
+          isDragging = true
+          updateProgress(e)
+        })
+
+        document.addEventListener('mouseup', function () {
+          isDragging = false
+        })
+
+        document.addEventListener('mousemove', function (e) {
+          if (isDragging) {
+            updateProgress(e)
+          }
+        })
+
+        function updateProgress(e) {
+          const progressBarRect = progressBar.getBoundingClientRect()
+          const progressValue =
+            ((e.clientX - progressBarRect.left) / progressBarRect.width) * 100
+
+          // 限制进度在 0% 到 100% 之间
+          const clampedProgressValue = Math.min(100, Math.max(0, progressValue))
+
+          progress.style.width = clampedProgressValue + '%'
+        }
+      })
+    </script>
+  </body>
+</html>

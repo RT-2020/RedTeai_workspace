@@ -27,7 +27,7 @@
           //矢量
           new ol.layer.Tile({
             source: new ol.source.XYZ({
-              url: 'http://10.52.1.38:6088/geoscene/static/servers/earthGll/_alllayers/{z}/{x}/{y}.png',
+              url: 'http://10.52.1.38:6088/608B2192_DOM_Tiles/{z}/{x}/{y}.png',
               projection: 'EPSG:3857',
             }),
           }),
@@ -43,7 +43,7 @@
         view: new ol.View({
           // center: [106.42, 26.35],
           center: ol.proj.fromLonLat([106.42, 26.35]),
-          zoom: 0,
+          zoom: 3,
           projection: 'EPSG:3857',
         }),
       })

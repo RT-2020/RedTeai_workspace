@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>OpenLayers WMS Example</title>
+    <!-- 引入OpenLayers库 -->
+    <link
+      rel="stylesheet"
+      href="https://openlayers.org/en/v4.6.5/css/ol.css"
+      type="text/css"
+    />
+    <script src="https://openlayers.org/en/v4.6.5/build/ol.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <style>
+      /* 设置地图容器的大小 */
+      html,
+      body,
+      #map {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script>
+      // 初始化地图（徐州）
+      function initMapXz() {
+        var projection = new ol.proj.Projection({
+          code: 'EPSG:4326',
+          units: 'degrees',
+          axisOrientation: 'neu',
+          global: false,
+        })
+
+        // 天地图
+        let url = 'http://t{0-7}.tianditu.com/DataServer?x={x}&y={y}&l={z}'
+        url = `${url}&T=img_c&tk=3ef85e018e99de9415e5a05fe96cdf34`
+        var tianLayer1 = new ol.layer.Tile({
+          source: new ol.source.XYZ({
+            url: url,
+            projection: 'EPSG:4326',
+          }),
+        })
+
+        // Layer - Image source（小）
+        // 湖北随县-家庭承包地
+        var layer1 = new ol.layer.Image({
+          source: new ol.source.ImageWMS({
+            ratio: 1,
+            url: 'http://36.134.96.160:9080/geoserver-xzsz/jw/wms',
+            params: {
+              FORMAT: 'image/png',
+              VERSION: '1.1.1',
+              STYLES: '',
+              LAYERS: 'jw:jtzy',
+              exceptions: 'application/vnd.ogc.se_inimage',
+            },
+          }),
+        })
+
+        // 画多边形层
+        var drawSource = new ol.source.Vector()
+        var drawLayer = new ol.layer.Vector({
+          source: drawSource,
+          style: new ol.style.Style({
+            image: new ol.style.Circle({
+              radius: 30,
+              fill: new ol.style.Fill({
+                color: 'blue',
+              }),
+            }),
+          }),
+        })
+
+        // 初始化地图
+        var map = new ol.Map({
+          target: 'map',
+          layers: [tianLayer1, layer1, drawLayer],
+          view: new ol.View({
+            projection: projection,
+            center: [113.17248, 31.72688],
+            zoom: 11,
+            minZoom: 1,
+            maxZoom: 20,
+          }),
+        })
+
+        map.on('singleclick', function (evt) {
+          var view = map.getView()
+          var viewResolution = view.getResolution()
+          var source = layer1.get('visible') ? layer1.getSource() : ''
+          var url = source.getGetFeatureInfoUrl(
+            evt.coordinate,
+            viewResolution,
+            view.getProjection(),
+            { INFO_FORMAT: 'text/html', FEATURE_COUNT: 50 }
+          )
+        })
+
+        // 添加绘制和选择交互
+        addInteraction(map, drawSource, layer1)
+      }
+
+      // 添加绘制和选择交互
+      function addInteraction(map, drawSource, layer1) {
+        // 创建选择工具，用于盛放多边形内的要素
+        var selectGj = new ol.interaction.Select({
+          layers: [layer1], // 添加需要进行选择的图层
+          condition: ol.events.condition.click, // 点击事件触发选择
+          style: new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              width: 2,
+              color: 'rgba(0, 255, 0, 1)',
+            }),
+            fill: new ol.style.Fill({
+              color: 'rgba(0, 255, 0, 0.2)',
+            }),
+          }),
+        })
+
+        // 创建绘制多边形工具
+        var drawBoxGj = new ol.interaction.Draw({
+          source: drawSource,
+          type: 'Polygon',
+          style: new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              width: 2,
+              color: 'rgba(0, 0, 255, 1)',
+            }),
+            fill: new ol.style.Fill({
+              color: 'rgba(0, 0, 255, 0.2)',
+            }),
+          }),
+        })
+
+        // 开始绘制，清除已有要素
+        drawBoxGj.on('drawstart', () => {
+          selectGj.getFeatures().clear()
+          drawSource.clear()
+        })
+
+        // 结束绘制
+        drawBoxGj.on('drawend', (event) => {
+          console.log(
+            '%c [ event ]-159',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            event
+          )
+          var polygon = event.feature.getGeometry()
+          var extent = polygon.getExtent()
+
+          const coordinate = polygon.getCoordinates()
+
+          // 获取地图视图和分辨率
+          var view = map.getView()
+          var viewResolution = view.getResolution()
+
+          // 获取 WMS 图层源
+          var wmsSource = layer1.getSource()
+
+          // 构建 GetFeatureInfo 请求参数
+          var params = {
+            INFO_FORMAT: 'application/json',
+            FEATURE_COUNT: 50,
+            X: coordinate[0],
+            Y: coordinate[1],
+            BBOX: extent.join(',') + ',' + view.getProjection().getCode(),
+            SRS: view.getProjection().getCode(),
+            WIDTH: map.getSize()[0],
+            HEIGHT: map.getSize()[1],
+          }
+
+          // 发送 GetFeatureInfo 请求
+          var url = wmsSource.getGetFeatureInfoUrl(
+            coordinate,
+            viewResolution,
+            view.getProjection(),
+            params
+          )
+
+          if (url) {
+            $.ajax({
+              url: url,
+              type: 'post',
+              success: function (result) {
+                console.log(result)
+                // 在这里处理获取到的地块数据
+              },
+              error: function (error) {
+                console.log(error, '在控制台输出错误信息')
+              },
+            })
+          }
+        })
+
+        map.addInteraction(selectGj)
+        map.addInteraction(drawBoxGj)
+      }
+
+      // 调用初始化地图函数
+      initMapXz()
+    </script>
+  </body>
+</html>

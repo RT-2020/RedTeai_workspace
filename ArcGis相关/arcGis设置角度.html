@@ -1,0 +1,101 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <title>
+      Visualize data with rotation | Sample | ArcGIS Maps SDK for JavaScript
+      4.28
+    </title>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.28/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.28/"></script>
+
+    <script>
+      require(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer'], (
+        Map,
+        MapView,
+        FeatureLayer
+      ) => {
+        // Create an arrow symbol using an SVG path
+        // Since the arrow points downward, we set
+        // the angle to 180 degrees to point to
+        // 0 geographic degrees north
+
+        const symbol = {
+          type: 'simple-marker', // autocasts as new SimpleMarkerSymbol()
+          path: 'M14.5,29 23.5,0 14.5,9 5.5,0z',
+          color: '#ffff00',
+          outline: {
+            color: [0, 0, 0, 0.7],
+            width: 0.5,
+          },
+          angle: 0,
+          size: 15,
+        }
+
+        /******************************************************
+         *
+         * Create a SimpleRenderer where each feature will be
+         * rendered with the same symbol (in this case, an arrow).
+         * Set the symbol on the renderer and a "rotation"
+         * visual variable that points to a field in the stream service
+         * that contains heading information for each feature.
+         * The "geographic" rotation type assumes 0 degrees is due north.
+         *
+         * The size visual variable resizes each symbol
+         * based on the feature's wind speed.
+         *
+         *******************************************************/
+
+        const rotationRenderer = {
+          type: 'simple', // autocasts as new SimpleRenderer()
+          symbol: symbol,
+          visualVariables: [
+            {
+              type: 'rotation',
+              field: '测站方位',
+              rotationType: 'geographic',
+            },
+          ],
+        }
+
+        // Construct the layer and add it to the map
+
+        const layer = new FeatureLayer({
+          url: 'http://10.52.1.38:6080/geoscene/rest/services/ysbj/ysbj/FeatureServer/8',
+          renderer: rotationRenderer,
+        })
+
+        const map = new Map({
+          basemap: 'satellite',
+          layers: [layer],
+        })
+
+        const view = new MapView({
+          container: 'viewDiv',
+          map: map,
+        })
+      })
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>
